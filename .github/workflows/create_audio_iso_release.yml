@@ -1,0 +1,80 @@
+name: Create and Upload Audio ISO Release
+
+# ワークフローのトリガー
+on:
+  push:
+    tags:
+      - 'v*' # 'v'で始まるタグ (例: v1.0, v2.1) がプッシュされたときに実行
+
+# ジョブに必要な権限
+permissions:
+  contents: write # リリースにアセットをアップロードするために必要
+
+jobs:
+  build-and-release-iso:
+    runs-on: ubuntu-latest # 最新のUbuntuランナーで実行
+    steps:
+      # --- 1. セットアップ ---
+
+      # リポジトリのコードをチェックアウト
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ISO作成ツール (genisoimage) をインストール
+      - name: Install genisoimage
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y genisoimage
+
+      # --- 2. .wav ファイルの収集 ---
+
+      # .wav ファイルを一時ディレクトリに収集（ディレクトリ構造を維持）
+      - name: Collect wav files
+        run: |
+          mkdir iso_root
+          # findで .wav ファイルを探し、cpioでディレクトリ構造を維持したままコピー
+          find . -type f -name "*.wav" | cpio -pdm iso_root
+          echo "Collected .wav files into iso_root/"
+
+      # --- 3. ISOの作成とアップロード ---
+
+      # .wav ファイルが存在するかチェック
+      - name: Check if wav files exist
+        id: check_files
+        run: |
+          if [ -z "$(ls -A iso_root)" ]; then
+            echo "No .wav files found. Skipping ISO creation."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo ".wav files found. Proceeding."
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      # ISO ファイルを作成
+      - name: Create ISO file
+        # 'check_files' ステップで 'skip=false' が設定された場合のみ実行
+        if: steps.check_files.outputs.skip == 'false'
+        run: |
+          # タグ名 (例: v1.0.0) をファイル名に使用
+          TAG_NAME=${{ github.ref_name }}
+          ISO_NAME="audio_archive_${TAG_NAME}.iso"
+          
+          echo "Creating $ISO_NAME..."
+          # iso_root の中身をISOファイルにする
+          # -R: Rock Ridge 属性 (UNIXライクなファイルシステム用)
+          # -J: Joliet 属性 (Windows用)
+          genisoimage -o $ISO_NAME -R -J iso_root
+          
+          # 作成したISOファイル名を後続のステップに渡す
+          echo "ISO_FILE=$ISO_NAME" >> $GITHUB_ENV
+
+      # 作成したISOファイルをリリースにアップロード
+      - name: Upload ISO to Release
+        # 'check_files' ステップで 'skip=false' が設定された場合のみ実行
+        if: steps.check_files.outputs.skip == 'false'
+        run: |
+          echo "Uploading ${{ env.ISO_FILE }} to release ${{ github.ref_name }}..."
+          gh release upload ${{ github.ref_name }} ${{ env.ISO_FILE }}
+        env:
+          # gh CLI (GitHub CLI) は GITHUB_TOKEN を使って認証する
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

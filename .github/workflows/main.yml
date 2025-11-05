@@ -1,27 +1,36 @@
-name: Download and Archive Impulse Tracker
+name: Download and Commit File
 
-# ワークフローを手動で実行できるようにします (Actionsタブの "Run workflow" ボタン)
+# ワークフローを手動で実行できるようにします (Actionsタブから)
 on:
   workflow_dispatch:
 
 jobs:
-  download-and-upload:
-    runs-on: ubuntu-latest # 最新のUbuntuランナーで実行
+  download-and-commit:
+    runs-on: ubuntu-latest
+
+    # リポジトリにコミットをプッシュするために書き込み権限が必要です
+    permissions:
+      contents: write
 
     steps:
-      # ステップ 1: curl を使ってファイルをダウンロード
-      - name: Download it214.zip
-        run: |
-          # -L オプションはリダイレクトに対応するため
-          # -o オプションで出力ファイル名を指定
-          curl -L -o it214.zip http://ftp.cdrom.com/music/programs/trackers/it214.zip
+      # 1. リポジトリのコードをチェックアウトします
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-      # ステップ 2: ダウンロードしたファイルをアーティファクトとしてアップロード
-      - name: Upload Artifact
-        # 公式のアーティファクトアップロードアクションを使用
-        uses: actions/upload-artifact@v4
+      # 2. curl を使ってファイルをダウンロードします
+      #    -L: リダイレクトをたどる
+      #    -o: 出力ファイル名を指定 (URLの#以降から取得)
+      - name: Download file
+        run: |
+          curl -L -o "lolit_hyper_x-rated.s3m" "https://api.modarchive.org/downloads.php?moduleid=74080"
+
+      # 3. ダウンロードしたファイルをリポジトリにコミット＆プッシュします
+      #    stefanzweifel/git-auto-commit-action を使うと簡単です
+      - name: Commit and push file
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          # アーティファクトの名前 (リポジトリのActionsページに表示されます)
-          name: impulse-tracker-package
-          # アップロードするファイルまたはフォルダのパス
-          path: it214.zip
+          # コミットメッセージ
+          commit_message: "CI: Add/update lolit_hyper_x-rated.s3m"
+          
+          # コミット対象のファイルパターン
+          file_pattern: "lolit_hyper_x-rated.s3m"

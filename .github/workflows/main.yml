@@ -1,11 +1,11 @@
-name: Download and Commit File
+name: Download MP3, Convert to WAV, and Commit
 
-# ワークフローを手動で実行できるようにします (Actionsタブから)
+# ワークフローを手動で実行できるようにします
 on:
   workflow_dispatch:
 
 jobs:
-  download-and-commit:
+  convert-and-commit:
     runs-on: ubuntu-latest
 
     # リポジトリにコミットをプッシュするために書き込み権限が必要です
@@ -17,20 +17,33 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      # 2. curl を使ってファイルをダウンロードします
-      #    -L: リダイレクトをたどる
-      #    -o: 出力ファイル名を指定 (URLの#以降から取得)
-      - name: Download file
+      # 2. FFmpeg をインストールします
+      # (MP3をWAVに変換するために必要です)
+      - name: Install FFmpeg
         run: |
-          curl -L -o "lolit_hyper_x-rated.s3m" "https://api.modarchive.org/downloads.php?moduleid=74080"
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
-      # 3. ダウンロードしたファイルをリポジトリにコミット＆プッシュします
-      #    stefanzweifel/git-auto-commit-action を使うと簡単です
-      - name: Commit and push file
+      # 3. 指定された MP3 ファイルをダウンロードします
+      #    URLにスペースや特殊文字が含まれるため、必ず "" で囲みます
+      - name: Download source file (MP3)
+        run: |
+          # "input.mp3" という一時ファイル名で保存します
+          curl -L -o "input.mp3" "https://archive.org/download/nerdcorejcore2/XROGER/%5BXRCD-004%5D%20V.A.%20-%20Star%20Fourth/16%20hub%20master%20-%20%E3%81%B5%E3%81%8F%E3%82%8D%E3%81%86%E4%B8%89%E6%98%A7.mp3"
+          
+      # 4. FFmpeg を使って WAV に変換します
+      - name: Convert to WAV
+        run: |
+          # ダウンロードした "input.mp3" を "output.wav" に変換します
+          # 元のファイル名から "ふくろう三昧.wav" という名前にします
+          ffmpeg -i input.mp3 "ふくろう三昧.wav"
+          
+      # 5. 変換された WAV ファイルをコミット＆プッシュします
+      - name: Commit and push WAV file
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           # コミットメッセージ
-          commit_message: "CI: Add/update lolit_hyper_x-rated.s3m"
+          commit_message: "CI: Add/update converted WAV file"
           
-          # コミット対象のファイルパターン
-          file_pattern: "lolit_hyper_x-rated.s3m"
+          # コミット対象のファイルパターン (WAVファイルのみ)
+          file_pattern: "*.wav"

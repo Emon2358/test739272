@@ -1,0 +1,27 @@
+name: Download and Archive Impulse Tracker
+
+# ワークフローを手動で実行できるようにします (Actionsタブの "Run workflow" ボタン)
+on:
+  workflow_dispatch:
+
+jobs:
+  download-and-upload:
+    runs-on: ubuntu-latest # 最新のUbuntuランナーで実行
+
+    steps:
+      # ステップ 1: curl を使ってファイルをダウンロード
+      - name: Download it214.zip
+        run: |
+          # -L オプションはリダイレクトに対応するため
+          # -o オプションで出力ファイル名を指定
+          curl -L -o it214.zip http://ftp.cdrom.com/music/programs/trackers/it214.zip
+
+      # ステップ 2: ダウンロードしたファイルをアーティファクトとしてアップロード
+      - name: Upload Artifact
+        # 公式のアーティファクトアップロードアクションを使用
+        uses: actions/upload-artifact@v4
+        with:
+          # アーティファクトの名前 (リポジトリのActionsページに表示されます)
+          name: impulse-tracker-package
+          # アップロードするファイルまたはフォルダのパス
+          path: it214.zip

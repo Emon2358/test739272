@@ -29,14 +29,14 @@ jobs:
       - name: Download source file (MP3)
         run: |
           # "input.mp3" という一時ファイル名で保存します
-          curl -L -o "input.mp3" "https://archive.org/download/nerdcorejcore2/XROGER/%5BXRCD-006%5D%20V.A.%20-%20%E6%9C%A8%E5%A4%A2/2%20hub%20master%20-%20TIGERS%202%28TOKYO%20DOME%20mix%29.mp3"
+          curl -L -o "input.mp3" "https://archive.org/download/nerdcorejcore2/XROGER/%5BXRCD-007%5D%20V.A.%20-%20Mania%20Beat%207th%20mix/10%20hub%20master%20-%20%E5%8B%9D%E6%89%8B%E3%81%AB%E6%A1%83%E8%89%A6%E9%95%B7.mp3"
           
       # 4. FFmpeg を使って WAV に変換します
       - name: Convert to WAV
         run: |
           # ダウンロードした "input.mp3" を "output.wav" に変換します
           # 元のファイル名から "ふくろう三昧.wav" という名前にします
-          ffmpeg -i input.mp3 "タイガース2.wav"
+          ffmpeg -i input.mp3 "勝手に桃館長.wav"
           
       # 5. 変換された WAV ファイルをコミット＆プッシュします
       - name: Commit and push WAV file
